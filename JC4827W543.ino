@@ -52,7 +52,7 @@ void loop()
   }
 }
 
-// Draw a line of image directly on the LCD
+// Draw a line of image directly on the screen
 void GIFDraw(GIFDRAW *pDraw)
 {
   uint8_t *s;
