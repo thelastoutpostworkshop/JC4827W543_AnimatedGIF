@@ -1,7 +1,6 @@
 
-#include <PINS_JC4827W543.h>
-#include <AnimatedGIF.h> // Install this library with the Arduino IDE Library Manager
-                         // Tested on version 2.1.1
+#include <PINS_JC4827W543.h>  // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.5)
+#include <AnimatedGIF.h>      // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
 
 // GIF files
 #include "gif_files/animated_gif_320x240_1.h" //GIF size in FLASH memory
@@ -18,7 +17,7 @@
 #include "gif_files/star_trek_hud.h"         //GIF size in FLASH memory is 1.6MB
 #include "gif_files/jedi_battle.h"           //GIF size in FLASH memory is 3.3MB (use partitions.csv for this one, if you your ESP32 board has 4MB Flash size)
 
-#define GIF_NAME x_wing
+#define GIF_NAME death_star
 AnimatedGIF gif;
 int16_t display_width, display_height;
 
