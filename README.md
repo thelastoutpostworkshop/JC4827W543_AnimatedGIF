@@ -1,1 +1,1 @@
-# JC4827W543
+# Animated GIF on JC4827W543
