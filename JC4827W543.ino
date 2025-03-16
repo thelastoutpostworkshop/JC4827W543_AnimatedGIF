@@ -25,6 +25,8 @@ int16_t display_width, display_height;
 
 void setup()
 {
+  Serial.begin(115200);
+
   // Init Display
   if (!gfx->begin())
   {
