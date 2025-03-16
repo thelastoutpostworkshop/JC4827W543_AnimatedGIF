@@ -1,6 +1,8 @@
 
-#include <PINS_JC4827W543.h>  // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.5)
-#include <AnimatedGIF.h>      // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
+// Use board "ESP32S3 Dev Module" (last tested on v3.1.3)
+// Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
+#include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.5)
+#include <AnimatedGIF.h>     // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
 
 // GIF files
 #include "gif_files/animated_gif_320x240_1.h" //GIF size in FLASH memory
@@ -44,7 +46,7 @@ void loop()
 {
   if (openGif((uint8_t *)GIF_NAME, sizeof(GIF_NAME)))
   {
-    while (gif.playFrame(true, NULL))
+    while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
     {
     };
   }
@@ -152,15 +154,6 @@ bool openGif(uint8_t *gifdata, size_t gifsize)
   {
     Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
     Serial.printf("GIF memory size is %ld (%2.2f MB)\n", gifsize, (float)gifsize / (1024 * 1024));
-    // gif.setDrawType(GIF_DRAW_COOKED); // We want the Animated GIF library to generate ready-made pixels
-    // if (!gif.getFrameBuf())
-    // {
-    //   if (gif.allocFrameBuf(GIFAlloc) != GIF_SUCCESS)
-    //   {
-    //     Serial.println("Not Enough RAM memory for frame buffer");
-    //     return false;
-    //   }
-    // }
     return true;
   }
   else
@@ -169,33 +162,6 @@ bool openGif(uint8_t *gifdata, size_t gifsize)
     return false;
   }
 }
-
-//
-// The memory management functions are needed to keep operating system
-// dependencies out of the core library code
-//
-// memory allocation callback function
-void *GIFAlloc(uint32_t u32Size)
-{
-  return malloc(u32Size);
-} /* GIFAlloc() */
-// memory free callback function
-void GIFFree(void *p)
-{
-  free(p);
-}
-
-// // Draw callback from the AnimatedGIF decoder
-// void GIFDraw(GIFDRAW *pDraw)
-// {
-//   if (pDraw->y == 0)
-//   { // set the memory window (once per frame) when the first line is rendered
-//     tft.setAddrWindow(pDraw->iX, pDraw->iY, pDraw->iWidth, pDraw->iHeight);
-//   }
-//   // For all other lines, just push the pixels to the display. We requested 'COOKED'big-endian RGB565 and
-//   // the library provides them here. No need to do anything except push them right to the display
-//   tft.pushPixels((uint16_t *)pDraw->pPixels, pDraw->iWidth, DRAW_TO_LCD | DRAW_WITH_DMA);
-// } /* GIFDraw() */
 
 // Get human-readable error related to GIF
 void printGifErrorMessage(int errorCode)
