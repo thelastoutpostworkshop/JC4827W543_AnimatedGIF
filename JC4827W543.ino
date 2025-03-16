@@ -1,11 +1,5 @@
-// Master Animated GIF on a 320x240 SPI LCD Screen
-// Youtube Tutorial: https://youtu.be/omUWkUqFYrQ
-// Tested with Espressif ESP32 Arduino Core v3.0.2, 3.0.3
-// Using ESP32-S3 with 8MB of PSRAM
-// See also the Tutorial on how to create ESP32 custom partitions:
-//
-#include <bb_spi_lcd.h>  // Install this library with the Arduino IDE Library Manager
-                         // Tested on version 2.5.4, 2.6.0
+
+#include <PINS_JC4827W543.h>
 #include <AnimatedGIF.h> // Install this library with the Arduino IDE Library Manager
                          // Tested on version 2.1.1
 
@@ -24,64 +18,133 @@
 #include "gif_files/star_trek_hud.h"         //GIF size in FLASH memory is 1.6MB
 #include "gif_files/jedi_battle.h"           //GIF size in FLASH memory is 3.3MB (use partitions.csv for this one, if you your ESP32 board has 4MB Flash size)
 
-// Push Button
-#define PUSH_BUTTION_PIN 13
-unsigned long lastDebounceTime;
-int lastState = -1;
-int state = -1;
-
-// Main object for the display driver
-BB_SPI_LCD tft;
+#define GIF_NAME x_wing
 AnimatedGIF gif;
-
-// GIFs to display
-#define GIF_COUNT 4                                                                                                                                                  // Number of GIFs to cycle through, if you have enough space on flash memory
-const uint8_t *gifData[GIF_COUNT] = {animated_gif_320x240_1, animated_gif_320x240_2, animated_gif_320x240_3_2, animated_gif_320x240_4};                                // Add more GIFs here if you have enough space on flash memory
-const size_t gifSizes[GIF_COUNT] = {sizeof(animated_gif_320x240_1), sizeof(animated_gif_320x240_2), sizeof(animated_gif_320x240_3_2), sizeof(animated_gif_320x240_4)}; // Add corresponding sizes here
-
-int currentGif = 0;
+int16_t display_width, display_height;
 
 void setup()
 {
-  //  pinMode(PUSH_BUTTION_PIN, INPUT_PULLUP);
-  //  lastDebounceTime = millis();
+  // Init Display
+  if (!gfx->begin())
+  {
+    Serial.println("gfx->begin() failed!");
+  }
+  gfx->fillScreen(RGB565_BLACK);
 
-  Serial.begin(115200);
-  // tft.begin(LCD_ILI9341, FLAGS_NONE, 40000000, 8, 18, 17, -1, -1, 9, 3); // Scott Pinout
-  // tft.begin(LCD_ILI9341, FLAGS_NONE, 40000000, 15, 2, -1, 21, 12, 13, 14); // Charles Cheap Yellow display pinout
-  tft.begin(DISPLAY_CYD_543); // Charles Cheap Yellow display pinout
+#ifdef GFX_BL
+  pinMode(GFX_BL, OUTPUT);
+  digitalWrite(GFX_BL, HIGH);
+#endif
 
-  // tft.setRotation(LCD_ORIENTATION_90); // Make sure you have the right orientation based on your GIF
-                                       // or the GIF will show incorrectly, even garbage output
-                                       // Values : LCD_ORIENTATION_0, LCD_ORIENTATION_90, LCD_ORIENTATION_180 or LCD_ORIENTATION_270
-  tft.fillScreen(TFT_BLACK);
-
-  gif.begin(GIF_PALETTE_RGB565_LE); // Set the cooked output type we want (compatible with SPI LCDs)
+  display_width = gfx->width();
+  display_height = gfx->height();
+  gif.begin(BIG_ENDIAN_PIXELS);
 }
 
 void loop()
 {
-  playGif(currentGif);
-  currentGif++;
-  if (currentGif == GIF_COUNT)
+  if (openGif((uint8_t *)GIF_NAME, sizeof(GIF_NAME)))
   {
-    currentGif = 0;
+    while (gif.playFrame(true, NULL))
+    {
+    };
   }
 }
 
-void playGif(int gifNum)
+// Draw a line of image directly on the LCD
+void GIFDraw(GIFDRAW *pDraw)
 {
-  const bool opened = openGif((uint8_t *)gifData[gifNum], gifSizes[gifNum]);
-  if (!opened)
+  uint8_t *s;
+  uint16_t *d, *usPalette, usTemp[320];
+  int x, y, iWidth;
+
+  iWidth = pDraw->iWidth;
+  if (iWidth + pDraw->iX > display_width)
   {
-    Serial.printf("Cannot open GIF number %d\n", gifNum);
+    iWidth = display_width - pDraw->iX;
+  }
+  usPalette = pDraw->pPalette;
+  y = pDraw->iY + pDraw->y; // current line
+  if (y >= display_height || pDraw->iX >= display_width || iWidth < 1)
+  {
     return;
   }
-  tft.fillScreen(TFT_BLACK);
-  while (gif.playFrame(true, NULL))
-    ;
-}
+  s = pDraw->pPixels;
+  if (pDraw->ucDisposalMethod == 2) // restore to background color
+  {
+    for (x = 0; x < iWidth; x++)
+    {
+      if (s[x] == pDraw->ucTransparent)
+      {
+        s[x] = pDraw->ucBackground;
+      }
+    }
+    pDraw->ucHasTransparency = 0;
+  }
 
+  // Apply the new pixels to the main image
+  if (pDraw->ucHasTransparency) // if transparency used
+  {
+    uint8_t *pEnd, c, ucTransparent = pDraw->ucTransparent;
+    int x, iCount;
+    pEnd = s + iWidth;
+    x = 0;
+    iCount = 0; // count non-transparent pixels
+    while (x < iWidth)
+    {
+      c = ucTransparent - 1;
+      d = usTemp;
+      while (c != ucTransparent && s < pEnd)
+      {
+        c = *s++;
+        if (c == ucTransparent) // done, stop
+        {
+          s--; // back up to treat it like transparent
+        }
+        else // opaque
+        {
+          *d++ = usPalette[c];
+          iCount++;
+        }
+      } // while looking for opaque pixels
+      if (iCount) // any opaque pixels?
+      {
+        gfx->draw16bitBeRGBBitmap(pDraw->iX + x, y, usTemp, iCount, 1);
+        x += iCount;
+        iCount = 0;
+      }
+      // no, look for a run of transparent pixels
+      c = ucTransparent;
+      while (c == ucTransparent && s < pEnd)
+      {
+        c = *s++;
+        if (c == ucTransparent)
+        {
+          iCount++;
+        }
+        else
+        {
+          s--;
+        }
+      }
+      if (iCount)
+      {
+        x += iCount; // skip these
+        iCount = 0;
+      }
+    }
+  }
+  else
+  {
+    s = pDraw->pPixels;
+    // Translate the 8-bit pixels through the RGB565 palette (already byte reversed)
+    for (x = 0; x < iWidth; x++)
+    {
+      usTemp[x] = usPalette[*s++];
+    }
+    gfx->draw16bitBeRGBBitmap(pDraw->iX, y, usTemp, iWidth, 1);
+  }
+} /* GIFDraw() */
 
 // Open Gif and allocate memory
 bool openGif(uint8_t *gifdata, size_t gifsize)
@@ -90,15 +153,15 @@ bool openGif(uint8_t *gifdata, size_t gifsize)
   {
     Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
     Serial.printf("GIF memory size is %ld (%2.2f MB)\n", gifsize, (float)gifsize / (1024 * 1024));
-    gif.setDrawType(GIF_DRAW_COOKED); // We want the Animated GIF library to generate ready-made pixels
-    if (!gif.getFrameBuf())
-    {
-      if (gif.allocFrameBuf(GIFAlloc) != GIF_SUCCESS)
-      {
-        Serial.println("Not Enough RAM memory for frame buffer");
-        return false;
-      }
-    }
+    // gif.setDrawType(GIF_DRAW_COOKED); // We want the Animated GIF library to generate ready-made pixels
+    // if (!gif.getFrameBuf())
+    // {
+    //   if (gif.allocFrameBuf(GIFAlloc) != GIF_SUCCESS)
+    //   {
+    //     Serial.println("Not Enough RAM memory for frame buffer");
+    //     return false;
+    //   }
+    // }
     return true;
   }
   else
@@ -106,28 +169,6 @@ bool openGif(uint8_t *gifdata, size_t gifsize)
     printGifErrorMessage(gif.getLastError());
     return false;
   }
-}
-
-bool ButtonPressed()
-{
-  int currentState = digitalRead(PUSH_BUTTION_PIN);
-  if (currentState != lastState)
-  {
-    lastDebounceTime = millis();
-  }
-
-  if ((millis() - lastDebounceTime) > 1)
-  {
-    if (currentState != state)
-    {
-      state = currentState;
-      lastState = currentState;
-      return state == LOW; // Returns true if the button is pressed
-    }
-  }
-
-  lastState = currentState;
-  return false; // No change in state
 }
 
 //
@@ -145,16 +186,17 @@ void GIFFree(void *p)
   free(p);
 }
 
-// Draw callback from the AnimatedGIF decoder
-void GIFDraw(GIFDRAW *pDraw)
-{
-  if (pDraw->y == 0)
-  { // set the memory window (once per frame) when the first line is rendered
-    tft.setAddrWindow(pDraw->iX, pDraw->iY, pDraw->iWidth, pDraw->iHeight);
-  }
-  // For all other lines, just push the pixels to the display. We requested 'COOKED'big-endian RGB565 and
-  tft.pushPixels((uint16_t *)pDraw->pPixels, pDraw->iWidth);
-}
+// // Draw callback from the AnimatedGIF decoder
+// void GIFDraw(GIFDRAW *pDraw)
+// {
+//   if (pDraw->y == 0)
+//   { // set the memory window (once per frame) when the first line is rendered
+//     tft.setAddrWindow(pDraw->iX, pDraw->iY, pDraw->iWidth, pDraw->iHeight);
+//   }
+//   // For all other lines, just push the pixels to the display. We requested 'COOKED'big-endian RGB565 and
+//   // the library provides them here. No need to do anything except push them right to the display
+//   tft.pushPixels((uint16_t *)pDraw->pPixels, pDraw->iWidth, DRAW_TO_LCD | DRAW_WITH_DMA);
+// } /* GIFDraw() */
 
 // Get human-readable error related to GIF
 void printGifErrorMessage(int errorCode)
