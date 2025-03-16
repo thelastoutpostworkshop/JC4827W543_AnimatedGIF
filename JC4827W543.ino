@@ -35,6 +35,7 @@ void setup()
   gfx->fillScreen(RGB565_BLACK);
 
 #ifdef GFX_BL
+  // Set the backlight of the screen to High intensity
   pinMode(GFX_BL, OUTPUT);
   digitalWrite(GFX_BL, HIGH);
 #endif
