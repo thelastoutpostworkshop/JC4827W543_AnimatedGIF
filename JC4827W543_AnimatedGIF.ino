@@ -32,6 +32,10 @@ void setup()
   if (!gfx->begin())
   {
     Serial.println("gfx->begin() failed!");
+    while (true)
+    {
+      /* no need to continue */
+    }
   }
   gfx->fillScreen(RGB565_BLACK);
 
