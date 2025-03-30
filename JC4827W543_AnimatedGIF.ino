@@ -151,12 +151,100 @@ void displaySelectedFile()
 
 void loop()
 {
-  if (fileCount <= 0)
-    return;
-  
-  gfx->fillScreen(RGB565_BLACK);
-  
+  touchController.read();
+  if (touchController.touches > 0)
+  {
+    int tx = touchController.points[0].x;
+    int ty = touchController.points[0].y;
+    int screenW = gfx->width();
+    int screenH = gfx->height();
+    int arrowSize = 40;
+    int margin = 10;
+    int playButtonSize = 50;
+    int playX = (screenW - playButtonSize) / 2;
+    int playY = screenH - playButtonSize - 20;
 
+    // Check if touch is in the left arrow area.
+    if (tx < margin + arrowSize && ty > (screenH / 2 - arrowSize) && ty < (screenH / 2 + arrowSize))
+    {
+      // Left arrow touched: cycle to previous file.
+      currentFile--;
+      if (currentFile < 0)
+      currentFile = fileCount - 1;
+      updateTitle();
+      while (touchController.touches > 0)
+      {
+        touchController.read();
+        delay(50);
+      }
+      delay(300);
+    }
+    else if (tx > screenW - margin - arrowSize && ty > (screenH / 2 - arrowSize) && ty < (screenH / 2 + arrowSize))
+    {
+      // Right arrow touched: cycle to next file.
+      currentFile++;
+      if (currentFile >= fileCount)
+      currentFile = 0;
+      updateTitle();
+      while (touchController.touches > 0)
+      {
+        touchController.read();
+        delay(50);
+      }
+      delay(300);
+    }
+    // Check if touch is in the play button area.
+    else if (tx >= playX && tx <= playX + playButtonSize &&
+             ty >= playY && ty <= playY + playButtonSize)
+    {
+      playSelectedFile(currentFile);
+      // Wait until the user fully releases the touch before refreshing the UI.
+      waitForTouchRelease();
+
+      // After playback, redisplay the selection screen.
+      displaySelectedFile();
+      while (touchController.touches > 0)
+      {
+        touchController.read();
+        delay(50);
+      }
+      delay(300);
+    }
+  }
+  delay(50);
+}
+
+// Update the gif title on the screen
+void updateTitle() {
+  // Clear the entire title area
+  gfx->fillRect(0, TITLE_REGION_Y, TITLE_REGION_W, TITLE_REGION_H, RGB565_BLACK);
+  
+  // Retrieve the new title
+  String title = gifFileList[currentFile];
+  
+  // Get text dimensions for the new title
+  int16_t x1, y1;
+  uint16_t textW, textH;
+  gfx->getTextBounds(title.c_str(), 0, 0, &x1, &y1, &textW, &textH);
+  
+  // Center the text in the fixed title region:
+  int titleX = (TITLE_REGION_W - textW) / 2 - x1;
+  int titleY = TITLE_REGION_Y + (TITLE_REGION_H + textH) / 2;
+  
+  gfx->setCursor(titleX, titleY);
+  gfx->print(title);
+}
+
+// Continuously read until no touches are registered.
+void waitForTouchRelease()
+{
+  while (touchController.touches > 0)
+  {
+    touchController.read();
+    delay(50);
+  }
+  // Extra debounce delay to ensure that the touch state is fully cleared.
+  delay(300);
 }
 
 void playSelectedFile(int fileindex) {
