@@ -53,6 +53,8 @@ void setup()
   display_width = gfx->width();
   display_height = gfx->height();
   gif.begin(BIG_ENDIAN_PIXELS);
+
+  Serial.println("Loading GIF files list");
   loadGifFilesList();
 }
 
@@ -134,8 +136,8 @@ static int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition)
 // Read the avi file list in the avi folder
 void loadGifFilesList()
 {
-  File aviDir = SD_MMC.open(GIF_FOLDER);
-  if (!aviDir)
+  File gifDir = SD_MMC.open(GIF_FOLDER);
+  if (!gifDir)
   {
     Serial.println("Failed to open GIF folder");
     return;
@@ -143,7 +145,7 @@ void loadGifFilesList()
   fileCount = 0;
   while (true)
   {
-    File file = aviDir.openNextFile();
+    File file = gifDir.openNextFile();
     if (!file)
       break;
     if (!file.isDirectory())
@@ -158,7 +160,7 @@ void loadGifFilesList()
     }
     file.close();
   }
-  aviDir.close();
+  gifDir.close();
 }
 
 // Draw a line of image directly on the screen
