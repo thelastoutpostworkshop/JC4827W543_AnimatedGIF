@@ -60,9 +60,20 @@ void setup()
 
 void loop()
 {
+  if (fileCount <= 0)
+    return;
   gfx->fillScreen(RGB565_BLACK);
-  const char *fileName = gifFileList[currentFile++ % fileCount].c_str();
-  gifPlay((char *)fileName);
+
+  // Build the full path and play the selected file.
+  String fullPath = String(root) + String(GIF_FOLDER) + "/" + gifFileList[currentFile];
+  char gifFilename[128];
+  fullPath.toCharArray(gifFilename, sizeof(gifFilename));
+
+  currentFile = (currentFile + 1) % fileCount;
+
+  // Play the GIF file
+  Serial.printf("Playing %s\n", gifFilename);
+  gifPlay((char *)gifFilename);
   // if (openGif((uint8_t *)GIF_NAME, sizeof(GIF_NAME)))
   // {
   //   while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
@@ -80,6 +91,7 @@ void gifPlay(char *gifPath)
   {
     Serial.printf("Could not open gif %s", gifPath);
   }
+  Serial.printf("Starting playing gif %s\n",gifPath);
 
   while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
   {
@@ -161,7 +173,7 @@ void loadGifFilesList()
     file.close();
   }
   gifDir.close();
-  Serial.printf("%d gif files read\n",fileCount);
+  Serial.printf("%d gif files read\n", fileCount);
 }
 
 // Draw a line of image directly on the screen
