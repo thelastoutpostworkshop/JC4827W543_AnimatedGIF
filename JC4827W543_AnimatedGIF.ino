@@ -161,6 +161,7 @@ void loadGifFilesList()
     file.close();
   }
   gifDir.close();
+  Serial.printf("%d gif files read\n",fileCount);
 }
 
 // Draw a line of image directly on the screen
