@@ -10,7 +10,7 @@ const char *GIF_FOLDER = "/gif";
 AnimatedGIF gif;
 int16_t display_width, display_height;
 
-#define MAX_FILES 10 // Adjust as needed
+#define MAX_FILES 20 // Adjust as needed
 String gifFileList[MAX_FILES];
 int fileCount = 0;
 static int currentFile = 0;
