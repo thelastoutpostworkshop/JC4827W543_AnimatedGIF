@@ -2,6 +2,7 @@
 // Use board "ESP32S3 Dev Module" (last tested on v3.1.3)
 // Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
 #include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.5)
+                             // Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
 #include <AnimatedGIF.h>     // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
 #include "Audio.h"           // install as zip in the Arduino IDE : https://github.com/pschatzmann/arduino-audio-tools.git
 #include <SD_MMC.h>          // Included with the Espressif Arduino Core (last tested on v3.2.0)
@@ -10,6 +11,11 @@ const char *root = "/root"; // Do not change this, it is needed to access files 
 const char *GIF_FOLDER = "/gif";
 AnimatedGIF gif;
 int16_t display_width, display_height;
+
+#define MAX_FILES 10 // Adjust as needed
+String gifFileList[MAX_FILES];
+int fileCount = 0;
+static File FSGifFile; // temp gif file holder
 
 void setup()
 {
@@ -46,16 +52,94 @@ void setup()
   display_width = gfx->width();
   display_height = gfx->height();
   gif.begin(BIG_ENDIAN_PIXELS);
+  loadGifFilesList();
 }
 
 void loop()
 {
-  if (openGif((uint8_t *)GIF_NAME, sizeof(GIF_NAME)))
-  {
-    while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
-    {
-    };
+  // if (openGif((uint8_t *)GIF_NAME, sizeof(GIF_NAME)))
+  // {
+  //   while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
+  //   {
+  //   };
+  // }
+}
+
+static void * GIFOpenFile(const char *fname, int32_t *pSize)
+{
+  //log_d("GIFOpenFile( %s )\n", fname );
+  FSGifFile = SD_MMC.open(fname);
+  if (FSGifFile) {
+    *pSize = FSGifFile.size();
+    return (void *)&FSGifFile;
   }
+  return NULL;
+}
+
+
+static void GIFCloseFile(void *pHandle)
+{
+  File *f = static_cast<File *>(pHandle);
+  if (f != NULL)
+     f->close();
+}
+
+
+static int32_t GIFReadFile(GIFFILE *pFile, uint8_t *pBuf, int32_t iLen)
+{
+  int32_t iBytesRead;
+  iBytesRead = iLen;
+  File *f = static_cast<File *>(pFile->fHandle);
+  // Note: If you read a file all the way to the last byte, seek() stops working
+  if ((pFile->iSize - pFile->iPos) < iLen)
+      iBytesRead = pFile->iSize - pFile->iPos - 1; // <-- ugly work-around
+  if (iBytesRead <= 0)
+      return 0;
+  iBytesRead = (int32_t)f->read(pBuf, iBytesRead);
+  pFile->iPos = f->position();
+  return iBytesRead;
+}
+
+
+static int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition)
+{
+  int i = micros();
+  File *f = static_cast<File *>(pFile->fHandle);
+  f->seek(iPosition);
+  pFile->iPos = (int32_t)f->position();
+  i = micros() - i;
+  //log_d("Seek time = %d us\n", i);
+  return pFile->iPos;
+}
+
+// Read the avi file list in the avi folder
+void loadGifFilesList()
+{
+  File aviDir = SD_MMC.open(GIF_FOLDER);
+  if (!aviDir)
+  {
+    Serial.println("Failed to open GIF folder");
+    return;
+  }
+  fileCount = 0;
+  while (true)
+  {
+    File file = aviDir.openNextFile();
+    if (!file)
+      break;
+    if (!file.isDirectory())
+    {
+      String name = file.name();
+      if (name.endsWith(".gif") || name.endsWith(".GIF"))
+      {
+        gifFileList[fileCount++] = name;
+        if (fileCount >= MAX_FILES)
+          break;
+      }
+    }
+    file.close();
+  }
+  aviDir.close();
 }
 
 // Draw a line of image directly on the screen
