@@ -18,8 +18,8 @@ void setup()
   // SD Card initialization
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
-  SD_MMC.setPins(SD_SCK, SD_MOSI /* CMD */, SD_MISO /* D0 */);
-  if (!SD_MMC.begin(root, true /* mode1bit */, false /* format_if_mount_failed */, SDMMC_FREQ_DEFAULT))
+  SD_MMC.setPins(SD_SCK, SD_MOSI, SD_MISO);
+  if (!SD_MMC.begin(root, true, false /* format_if_mount_failed */, SDMMC_FREQ_DEFAULT))
   {
     Serial.println("ERROR: SD Card mount failed!");
     while (true)
