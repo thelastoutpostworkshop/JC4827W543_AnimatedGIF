@@ -15,6 +15,7 @@ int16_t display_width, display_height;
 #define MAX_FILES 10 // Adjust as needed
 String gifFileList[MAX_FILES];
 int fileCount = 0;
+static int currentFile = 0;
 static File FSGifFile; // temp gif file holder
 
 void setup()
@@ -57,6 +58,9 @@ void setup()
 
 void loop()
 {
+  gfx->fillScreen(RGB565_BLACK);
+  const char *fileName = gifFileList[currentFile++ % fileCount].c_str();
+  gifPlay((char *)fileName);
   // if (openGif((uint8_t *)GIF_NAME, sizeof(GIF_NAME)))
   // {
   //   while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
@@ -65,25 +69,41 @@ void loop()
   // }
 }
 
-static void * GIFOpenFile(const char *fname, int32_t *pSize)
+void gifPlay(char *gifPath)
 {
-  //log_d("GIFOpenFile( %s )\n", fname );
+
+  gif.begin(BIG_ENDIAN_PIXELS);
+
+  if (!gif.open(gifPath, GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw))
+  {
+    Serial.printf("Could not open gif %s", gifPath);
+  }
+
+  while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
+  {
+  }
+
+  gif.close();
+}
+
+static void *GIFOpenFile(const char *fname, int32_t *pSize)
+{
+  // log_d("GIFOpenFile( %s )\n", fname );
   FSGifFile = SD_MMC.open(fname);
-  if (FSGifFile) {
+  if (FSGifFile)
+  {
     *pSize = FSGifFile.size();
     return (void *)&FSGifFile;
   }
   return NULL;
 }
 
-
 static void GIFCloseFile(void *pHandle)
 {
   File *f = static_cast<File *>(pHandle);
   if (f != NULL)
-     f->close();
+    f->close();
 }
-
 
 static int32_t GIFReadFile(GIFFILE *pFile, uint8_t *pBuf, int32_t iLen)
 {
@@ -92,14 +112,13 @@ static int32_t GIFReadFile(GIFFILE *pFile, uint8_t *pBuf, int32_t iLen)
   File *f = static_cast<File *>(pFile->fHandle);
   // Note: If you read a file all the way to the last byte, seek() stops working
   if ((pFile->iSize - pFile->iPos) < iLen)
-      iBytesRead = pFile->iSize - pFile->iPos - 1; // <-- ugly work-around
+    iBytesRead = pFile->iSize - pFile->iPos - 1; // <-- ugly work-around
   if (iBytesRead <= 0)
-      return 0;
+    return 0;
   iBytesRead = (int32_t)f->read(pBuf, iBytesRead);
   pFile->iPos = f->position();
   return iBytesRead;
 }
-
 
 static int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition)
 {
@@ -108,7 +127,7 @@ static int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition)
   f->seek(iPosition);
   pFile->iPos = (int32_t)f->position();
   i = micros() - i;
-  //log_d("Seek time = %d us\n", i);
+  // log_d("Seek time = %d us\n", i);
   return pFile->iPos;
 }
 
