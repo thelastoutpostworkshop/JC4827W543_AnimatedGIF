@@ -79,18 +79,59 @@ void loop()
 {
   if (fileCount <= 0)
     return;
+  
   gfx->fillScreen(RGB565_BLACK);
-
-  // Build the full path and play the selected file.
-  String fullPath = String(GIF_FOLDER) + "/" + gifFileList[currentFile];
+  
+  // Use the current file and then advance the index.
+  int index = currentFile;
+  currentFile = (currentFile + 1) % fileCount;
+  
+  // Build the full path for the selected GIF.
+  String fullPath = String(GIF_FOLDER) + "/" + gifFileList[index];
   char gifFilename[128];
   fullPath.toCharArray(gifFilename, sizeof(gifFilename));
-
-  currentFile = (currentFile + 1) % fileCount;
-
-  // Play the GIF file
+  
   Serial.printf("Playing %s\n", gifFilename);
-  gifPlay((char *)gifFilename);
+  
+  // Check if the file can fit in the reserved PSRAM.
+  if (gifFileSizes[index] <= reservedPSRAMSize)
+  {
+    File gifFile = SD_MMC.open(gifFilename);
+    if (gifFile)
+    {
+      size_t fileSize = gifFile.size();
+      size_t bytesRead = gifFile.read(psramBuffer, fileSize);
+      gifFile.close();
+      Serial.printf("Read %u bytes into PSRAM\n", bytesRead);
+      
+      // Try opening the GIF from the PSRAM buffer.
+      if (gif.open(psramBuffer, fileSize, GIFDraw))
+      {
+        Serial.printf("Successfully opened GIF from PSRAM.\n");
+        while (gif.playFrame(false, NULL))
+        {
+          // Animation loop
+        }
+        gif.close();
+      }
+      else
+      {
+        Serial.printf("Failed to open GIF from PSRAM, falling back to SD.\n");
+        gifPlay(gifFilename);
+      }
+    }
+    else
+    {
+      Serial.printf("Failed to open %s for reading into PSRAM.\n", gifFilename);
+      gifPlay(gifFilename);
+    }
+  }
+  else
+  {
+    // File too big to fit in reserved PSRAM; open it directly from SD.
+    Serial.printf("File too big to fit in reserved PSRAM; open it directly from SD.\n");
+    gifPlay(gifFilename);
+  }
 }
 
 uint8_t *reservePSRAM()
