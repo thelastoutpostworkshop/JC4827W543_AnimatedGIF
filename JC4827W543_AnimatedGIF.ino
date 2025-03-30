@@ -130,6 +130,22 @@ uint8_t *reservePSRAM()
   return psramBuffer;
 }
 
+// Open Gif and allocate memory
+bool openGif(uint8_t *gifdata, size_t gifsize)
+{
+  if (gif.open(gifdata, gifsize, GIFDraw))
+  {
+    Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
+    Serial.printf("GIF memory size is %ld (%2.2f MB)\n", gifsize, (float)gifsize / (1024 * 1024));
+    return true;
+  }
+  else
+  {
+    printGifErrorMessage(gif.getLastError());
+    return false;
+  }
+}
+
 void gifPlay(char *gifPath)
 {
 
@@ -326,22 +342,6 @@ void GIFDraw(GIFDRAW *pDraw)
     gfx->draw16bitBeRGBBitmap(pDraw->iX, y, usTemp, iWidth, 1);
   }
 } /* GIFDraw() */
-
-// Open Gif and allocate memory
-bool openGif(uint8_t *gifdata, size_t gifsize)
-{
-  if (gif.open(gifdata, gifsize, GIFDraw))
-  {
-    Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
-    Serial.printf("GIF memory size is %ld (%2.2f MB)\n", gifsize, (float)gifsize / (1024 * 1024));
-    return true;
-  }
-  else
-  {
-    printGifErrorMessage(gif.getLastError());
-    return false;
-  }
-}
 
 // Get human-readable error related to GIF
 void printGifErrorMessage(int errorCode)
