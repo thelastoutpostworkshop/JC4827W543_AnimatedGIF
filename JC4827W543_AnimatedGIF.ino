@@ -85,24 +85,25 @@ void loop()
 void gifPlay(char *gifPath)
 {
 
-  gif.begin(BIG_ENDIAN_PIXELS);
-
   if (!gif.open(gifPath, GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw))
   {
     Serial.printf("Could not open gif %s", gifPath);
   }
-  Serial.printf("Starting playing gif %s\n",gifPath);
-
-  while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
+  else
   {
-  }
+    Serial.printf("Starting playing gif %s\n", gifPath);
 
-  gif.close();
+    while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
+    {
+    }
+
+    gif.close();
+  }
 }
 
 static void *GIFOpenFile(const char *fname, int32_t *pSize)
 {
-  // log_d("GIFOpenFile( %s )\n", fname );
+  Serial.printf("Opening %s from SD\n", fname);
   FSGifFile = SD_MMC.open(fname);
   if (FSGifFile)
   {
