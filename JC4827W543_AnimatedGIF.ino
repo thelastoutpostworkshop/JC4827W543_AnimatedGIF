@@ -16,6 +16,11 @@ int fileCount = 0;
 static int currentFile = 0;
 static File FSGifFile; // temp gif file holder
 
+// PSRAM for GIF playing optimization
+#define PSRAM_RESERVE_SIZE (100 * 1024)  // Reserve 100KB
+uint8_t *psramBuffer = NULL;
+size_t reservedPSRAMSize = 0;
+
 void setup()
 {
   Serial.begin(115200);
@@ -52,17 +57,15 @@ void setup()
   display_height = gfx->height();
   gif.begin(BIG_ENDIAN_PIXELS);
 
-  if (psramFound())
-  {
-    uint32_t totalPSRAM = ESP.getPsramSize(); // total PSRAM in bytes
-    uint32_t freePSRAM = ESP.getFreePsram();  // free PSRAM in bytes
-
-    Serial.printf("Total PSRAM: %d MB\n", totalPSRAM / (1024UL * 1024UL));
-    Serial.printf("Free PSRAM: %d MB\n", freePSRAM / (1024UL * 1024UL));
+  if (!psramFound()) {
+    Serial.println("No PSRAM found > Enable it by selecting OPI PSRAM in the board configuration");
   }
-  else
-  {
-    Serial.println("No PSRAM found!");
+  
+  // Reserve PSRAM (leaving ~10KB free)
+  uint8_t *myBuffer = reservePSRAM();
+  if (myBuffer == NULL) {
+    Serial.println("PSRAM reserve failed!");
+    // Handle error...
   }
 
   Serial.println("Loading GIF files list");
@@ -86,12 +89,37 @@ void loop()
   // Play the GIF file
   Serial.printf("Playing %s\n", gifFilename);
   gifPlay((char *)gifFilename);
-  // if (openGif((uint8_t *)GIF_NAME, sizeof(GIF_NAME)))
-  // {
-  //   while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
-  //   {
-  //   };
-  // }
+}
+
+uint8_t *reservePSRAM() {
+  if (!psramFound()) {
+    Serial.println("No PSRAM found!");
+    return NULL;
+  }
+  
+  // Get the total free PSRAM size (in bytes)
+  size_t freePSRAM = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+  
+  // Ensure we leave at least PSRAM_RESERVE_MARGIN free
+  if (freePSRAM <= PSRAM_RESERVE_SIZE) {
+    Serial.println("Not enough free PSRAM available to reserve!");
+    return NULL;
+  }
+  
+  // Calculate the amount we can reserve
+  reservedPSRAMSize = freePSRAM - PSRAM_RESERVE_SIZE;
+  
+  // Allocate the buffer from PSRAM
+  psramBuffer = (uint8_t *)heap_caps_malloc(reservedPSRAMSize, MALLOC_CAP_SPIRAM);
+  
+  if (psramBuffer != NULL) {
+    Serial.printf("Reserved %u bytes from PSRAM, leaving %u bytes free.\n", 
+                  reservedPSRAMSize, PSRAM_RESERVE_SIZE);
+  } else {
+    Serial.println("Failed to allocate PSRAM!");
+  }
+  
+  return psramBuffer;
 }
 
 void gifPlay(char *gifPath)
