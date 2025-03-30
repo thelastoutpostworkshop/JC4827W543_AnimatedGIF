@@ -260,6 +260,10 @@ void playSelectedFile(int fileindex) {
   // Check if the file can fit in the reserved PSRAM.
   if (gifFileSizes[fileindex] <= reservedPSRAMSize)
   {
+    gfx->fillScreen(RGB565_BLACK);
+    gfx->setCursor(20, 100);
+    gfx->print("Loading GIF in PSRAM...");
+
     File gifFile = SD_MMC.open(gifFilename);
     if (gifFile)
     {
