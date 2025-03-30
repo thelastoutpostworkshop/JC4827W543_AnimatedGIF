@@ -364,6 +364,10 @@ void gifPlay(char *gifPath)
   }
   else
   {
+    gfx->fillScreen(RGB565_BLACK);
+    gfx->setCursor(20, 100);
+    gfx->print("Playing GIF from SD Card...");
+    delay(1000);
     Serial.printf("Starting playing gif %s\n", gifPath);
 
     while (gif.playFrame(false /*change to true to use the internal gif frame duration*/, NULL))
