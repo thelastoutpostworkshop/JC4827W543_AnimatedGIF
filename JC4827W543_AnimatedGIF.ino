@@ -156,19 +156,21 @@ void loop()
   
   gfx->fillScreen(RGB565_BLACK);
   
+
+}
+
+void playSelectedFile(int fileindex) {
   // Use the current file and then advance the index.
-  int index = currentFile;
-  currentFile = (currentFile + 1) % fileCount;
   
   // Build the full path for the selected GIF.
-  String fullPath = String(GIF_FOLDER) + "/" + gifFileList[index];
+  String fullPath = String(GIF_FOLDER) + "/" + gifFileList[fileindex];
   char gifFilename[128];
   fullPath.toCharArray(gifFilename, sizeof(gifFilename));
   
   Serial.printf("Playing %s\n", gifFilename);
   
   // Check if the file can fit in the reserved PSRAM.
-  if (gifFileSizes[index] <= reservedPSRAMSize)
+  if (gifFileSizes[fileindex] <= reservedPSRAMSize)
   {
     File gifFile = SD_MMC.open(gifFilename);
     if (gifFile)
