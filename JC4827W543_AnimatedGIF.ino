@@ -12,12 +12,13 @@ int16_t display_width, display_height;
 
 #define MAX_FILES 20 // Adjust as needed
 String gifFileList[MAX_FILES];
+uint32_t gifFileSizes[MAX_FILES] = {0}; // Store each GIF file's size in bytes
 int fileCount = 0;
 static int currentFile = 0;
 static File FSGifFile; // temp gif file holder
 
 // PSRAM for GIF playing optimization
-#define PSRAM_RESERVE_SIZE (100 * 1024)  // Reserve 100KB
+#define PSRAM_RESERVE_SIZE (100 * 1024) // Reserve 100KB
 uint8_t *psramBuffer = NULL;
 size_t reservedPSRAMSize = 0;
 
@@ -57,13 +58,15 @@ void setup()
   display_height = gfx->height();
   gif.begin(BIG_ENDIAN_PIXELS);
 
-  if (!psramFound()) {
+  if (!psramFound())
+  {
     Serial.println("No PSRAM found > Enable it by selecting OPI PSRAM in the board configuration");
   }
-  
+
   // Reserve PSRAM (leaving ~10KB free)
   uint8_t *myBuffer = reservePSRAM();
-  if (myBuffer == NULL) {
+  if (myBuffer == NULL)
+  {
     Serial.println("PSRAM reserve failed!");
     // Handle error...
   }
@@ -90,34 +93,40 @@ void loop()
   gifPlay((char *)gifFilename);
 }
 
-uint8_t *reservePSRAM() {
-  if (!psramFound()) {
+uint8_t *reservePSRAM()
+{
+  if (!psramFound())
+  {
     Serial.println("No PSRAM found!");
     return NULL;
   }
-  
+
   // Get the total free PSRAM size (in bytes)
   size_t freePSRAM = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-  
+
   // Ensure we leave at least PSRAM_RESERVE_MARGIN free
-  if (freePSRAM <= PSRAM_RESERVE_SIZE) {
+  if (freePSRAM <= PSRAM_RESERVE_SIZE)
+  {
     Serial.println("Not enough free PSRAM available to reserve!");
     return NULL;
   }
-  
+
   // Calculate the amount we can reserve
   reservedPSRAMSize = freePSRAM - PSRAM_RESERVE_SIZE;
-  
+
   // Allocate the buffer from PSRAM
   psramBuffer = (uint8_t *)heap_caps_malloc(reservedPSRAMSize, MALLOC_CAP_SPIRAM);
-  
-  if (psramBuffer != NULL) {
-    Serial.printf("Reserved %u bytes from PSRAM, leaving %u bytes free.\n", 
+
+  if (psramBuffer != NULL)
+  {
+    Serial.printf("Reserved %u bytes from PSRAM, leaving %u bytes free.\n",
                   reservedPSRAMSize, PSRAM_RESERVE_SIZE);
-  } else {
+  }
+  else
+  {
     Serial.println("Failed to allocate PSRAM!");
   }
-  
+
   return psramBuffer;
 }
 
@@ -205,7 +214,9 @@ void loadGifFilesList()
       String name = file.name();
       if (name.endsWith(".gif") || name.endsWith(".GIF"))
       {
-        gifFileList[fileCount++] = name;
+        gifFileList[fileCount] = name;
+        gifFileSizes[fileCount] = file.size(); // Save file size (in bytes)
+        fileCount++;
         if (fileCount >= MAX_FILES)
           break;
       }
@@ -214,6 +225,11 @@ void loadGifFilesList()
   }
   gifDir.close();
   Serial.printf("%d gif files read\n", fileCount);
+  // Optionally, print out each file's size for debugging:
+  for (int i = 0; i < fileCount; i++)
+  {
+    Serial.printf("File %d: %s, Size: %lu bytes\n", i, gifFileList[i].c_str(), gifFileSizes[i]);
+  }
 }
 
 // Draw a line of image directly on the screen
