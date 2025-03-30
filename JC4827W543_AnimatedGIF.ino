@@ -21,7 +21,7 @@ static File FSGifFile; // temp gif file holder
 void setup()
 {
   Serial.begin(115200);
-
+  
   // SD Card initialization
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
@@ -53,6 +53,19 @@ void setup()
   display_width = gfx->width();
   display_height = gfx->height();
   gif.begin(BIG_ENDIAN_PIXELS);
+
+  if (psramFound())
+  {
+    uint32_t totalPSRAM = ESP.getPsramSize(); // total PSRAM in bytes
+    uint32_t freePSRAM = ESP.getFreePsram();  // free PSRAM in bytes
+
+    Serial.printf("Total PSRAM: %d MB\n", totalPSRAM / (1024UL * 1024UL));
+    Serial.printf("Free PSRAM: %d MB\n", freePSRAM / (1024UL * 1024UL));
+  }
+  else
+  {
+    Serial.println("No PSRAM found!");
+  }
 
   Serial.println("Loading GIF files list");
   loadGifFilesList();
