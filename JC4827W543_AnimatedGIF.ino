@@ -4,6 +4,8 @@
 #include <AnimatedGIF.h>     // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
 #include "Audio.h"           // install as zip in the Arduino IDE : https://github.com/pschatzmann/arduino-audio-tools.git
 #include <SD_MMC.h>          // Included with the Espressif Arduino Core (last tested on v3.2.0)
+#include "TAMC_GT911.h"         // Install "TAMC_GT911" with the Library Manager (last tested on v1.0.2)
+#include "FreeSansBold12pt7b.h" // Included in this project
 
 const char *root = "/root"; // Do not change this, it is needed to access files properly on the SD card
 const char *GIF_FOLDER = "/gif";
@@ -21,6 +23,18 @@ static File FSGifFile; // temp gif file holder
 #define PSRAM_RESERVE_SIZE (100 * 1024) // Reserve 100KB
 uint8_t *psramBuffer = NULL;
 size_t reservedPSRAMSize = 0;
+
+// Touch Controller
+#define TOUCH_SDA 8
+#define TOUCH_SCL 4
+#define TOUCH_INT 3
+#define TOUCH_RST 38
+#define TOUCH_WIDTH 480
+#define TOUCH_HEIGHT 272
+#define TITLE_REGION_Y (gfx->height()/3 - 30)
+#define TITLE_REGION_H 35
+#define TITLE_REGION_W (gfx->width())
+TAMC_GT911 touchController = TAMC_GT911(TOUCH_SDA, TOUCH_SCL, TOUCH_INT, TOUCH_RST, TOUCH_WIDTH, TOUCH_HEIGHT);
 
 void setup()
 {
@@ -49,10 +63,14 @@ void setup()
     }
   }
   gfx->fillScreen(RGB565_BLACK);
+  gfx->setFont(&FreeSansBold12pt7b);
 
   // Set the backlight of the screen to High intensity
   pinMode(GFX_BL, OUTPUT);
   digitalWrite(GFX_BL, HIGH);
+
+  touchController.begin();
+  touchController.setRotation(ROTATION_INVERTED); // Change as needed
 
   display_width = gfx->width();
   display_height = gfx->height();
@@ -73,6 +91,62 @@ void setup()
 
   Serial.println("Loading GIF files list");
   loadGifFilesList();
+  displaySelectedFile();
+}
+
+// Display the selected gif file
+void displaySelectedFile()
+{
+  // Clear the screen
+  gfx->fillScreen(RGB565_BLACK);
+
+  int screenW = gfx->width();
+  int screenH = gfx->height();
+  int centerY = screenH / 2;
+  int arrowSize = 40; // size of the arrow icon (adjust as needed)
+  int margin = 10;    // margin from screen edge
+
+  // --- Draw Left Arrow ---
+  // The left arrow is drawn as a filled triangle at the left side.
+  gfx->fillTriangle(margin, centerY,
+                    margin + arrowSize, centerY - arrowSize / 2,
+                    margin + arrowSize, centerY + arrowSize / 2,
+                    RGB565_WHITE);
+
+  // --- Draw Right Arrow ---
+  // Draw the right arrow as a filled triangle at the right side.
+  gfx->fillTriangle(screenW - margin, centerY,
+                    screenW - margin - arrowSize, centerY - arrowSize / 2,
+                    screenW - margin - arrowSize, centerY + arrowSize / 2,
+                    RGB565_WHITE);
+
+  // --- Draw the Title ---
+  // Get the file title string.
+  String title = gifFileList[currentFile];
+  int16_t x1, y1;
+  uint16_t textW, textH;
+  gfx->getTextBounds(title.c_str(), 0, 0, &x1, &y1, &textW, &textH);
+  // Calculate x so the text is centered.
+  int titleX = (screenW - textW) / 2 - x1;
+  // Position the title above the play button; here we place it at roughly one-third of the screen height.
+  int titleY = screenH / 3;
+  gfx->setCursor(titleX, titleY);
+  gfx->print(title);
+
+  // --- Draw the Play Button ---
+  // Define the play button size and location.
+  int playButtonSize = 50;
+  int playX = (screenW - playButtonSize) / 2;
+  int playY = screenH - playButtonSize - 20; // 20 pixels from bottom
+  // Draw a filled circle for the button background.
+  gfx->fillCircle(playX + playButtonSize / 2, playY + playButtonSize / 2, playButtonSize / 2, RGB565_DARKGREEN);
+  // Draw a play–icon (triangle) inside the circle.
+  int triX = playX + playButtonSize / 2 - playButtonSize / 4;
+  int triY = playY + playButtonSize / 2;
+  gfx->fillTriangle(triX, triY - playButtonSize / 4,
+                    triX, triY + playButtonSize / 4,
+                    triX + playButtonSize / 2, triY,
+                    RGB565_WHITE);
 }
 
 void loop()
