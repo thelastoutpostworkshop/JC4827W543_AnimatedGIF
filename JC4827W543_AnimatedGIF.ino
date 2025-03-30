@@ -79,7 +79,6 @@ void loop()
   gfx->fillScreen(RGB565_BLACK);
 
   // Build the full path and play the selected file.
-  // String fullPath = String(root) + String(GIF_FOLDER) + "/" + gifFileList[currentFile];
   String fullPath = String(GIF_FOLDER) + "/" + gifFileList[currentFile];
   char gifFilename[128];
   fullPath.toCharArray(gifFilename, sizeof(gifFilename));
