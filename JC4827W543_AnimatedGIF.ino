@@ -6,22 +6,6 @@
 #include "Audio.h"           // install as zip in the Arduino IDE : https://github.com/pschatzmann/arduino-audio-tools.git
 #include <SD_MMC.h>          // Included with the Espressif Arduino Core (last tested on v3.2.0)
 
-// GIF files
-#include "gif_files/animated_gif_320x240_1.h" //GIF size in FLASH memory
-#include "gif_files/animated_gif_320x240_2.h" //GIF size in FLASH memory
-#include "gif_files/animated_gif_320x240_3.h" //GIF size in FLASH memory
-#include "gif_files/animated_gif_320x240_4.h" //GIF size in FLASH memory
-
-#include "gif_files/hud_a.h"                 //GIF size in FLASH memory is 1.7MB
-#include "gif_files/x_wing.h"                //GIF size in FLASH memory is 0.9MB
-#include "gif_files/death_star.h"            //GIF size in FLASH memory is 1.7MB
-#include "gif_files/star_destroyer.h"        //GIF size in FLASH memory is 1MB
-#include "gif_files/star_destroyer_planet.h" //GIF size in FLASH memory is 2.3MB
-#include "gif_files/cat.h"                   //GIF size in FLASH memory is 1.1MB
-#include "gif_files/star_trek_hud.h"         //GIF size in FLASH memory is 1.6MB
-#include "gif_files/jedi_battle.h"           //GIF size in FLASH memory is 3.3MB (use partitions.csv for this one, if you your ESP32 board has 4MB Flash size)
-
-#define GIF_NAME death_star
 AnimatedGIF gif;
 int16_t display_width, display_height;
 
@@ -36,11 +20,9 @@ void setup()
   }
   gfx->fillScreen(RGB565_BLACK);
 
-#ifdef GFX_BL
   // Set the backlight of the screen to High intensity
   pinMode(GFX_BL, OUTPUT);
   digitalWrite(GFX_BL, HIGH);
-#endif
 
   display_width = gfx->width();
   display_height = gfx->height();
