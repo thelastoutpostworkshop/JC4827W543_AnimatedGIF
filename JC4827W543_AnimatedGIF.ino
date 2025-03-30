@@ -182,7 +182,7 @@ void loadGifFilesList()
 void GIFDraw(GIFDRAW *pDraw)
 {
   uint8_t *s;
-  uint16_t *d, *usPalette, usTemp[320];
+  uint16_t *d, *usPalette, usTemp[display_width];
   int x, y, iWidth;
 
   iWidth = pDraw->iWidth;
