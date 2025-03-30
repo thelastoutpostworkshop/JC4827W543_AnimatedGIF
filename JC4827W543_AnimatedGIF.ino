@@ -1,4 +1,5 @@
 // Use board "ESP32S3 Dev Module" (last tested on v3.2.0)
+//
 #include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.5)
                              // Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
 #include <AnimatedGIF.h>     // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
@@ -12,6 +13,7 @@ const char *GIF_FOLDER = "/gif";
 AnimatedGIF gif;
 int16_t display_width, display_height;
 
+// Storage for files to read on the SD card, adjust maximum value as needed
 #define MAX_FILES 20 // Adjust as needed
 String gifFileList[MAX_FILES];
 uint32_t gifFileSizes[MAX_FILES] = {0}; // Store each GIF file's size in bytes
@@ -39,7 +41,8 @@ TAMC_GT911 touchController = TAMC_GT911(TOUCH_SDA, TOUCH_SCL, TOUCH_INT, TOUCH_R
 void setup()
 {
   Serial.begin(115200);
-  delay(2000);
+  delay(2000); // Give time to the serial port to show initial messages printed on the serial port upon reset
+
   // SD Card initialization
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
@@ -53,7 +56,7 @@ void setup()
     }
   }
 
-  // Init Display
+  // Start the Display
   if (!gfx->begin())
   {
     Serial.println("gfx->begin() failed!");
@@ -65,23 +68,23 @@ void setup()
   gfx->fillScreen(RGB565_BLACK);
   gfx->setFont(&FreeSansBold12pt7b);
 
-  // Set the backlight of the screen to High intensity
   pinMode(GFX_BL, OUTPUT);
-  digitalWrite(GFX_BL, HIGH);
-
-  touchController.begin();
-  touchController.setRotation(ROTATION_INVERTED); // Change as needed
+  digitalWrite(GFX_BL, HIGH); // Set the backlight of the screen to High intensity
 
   display_width = gfx->width();
   display_height = gfx->height();
   gif.begin(BIG_ENDIAN_PIXELS);
+
+  // Start the touch controller
+  touchController.begin();
+  touchController.setRotation(ROTATION_INVERTED); // Change as needed
 
   if (!psramFound())
   {
     Serial.println("No PSRAM found > Enable it by selecting OPI PSRAM in the board configuration");
   }
 
-  // Reserve PSRAM (leaving ~10KB free)
+  // Reserve PSRAM (leaving PSRAM_RESERVE_SIZE free for other usage)
   uint8_t *myBuffer = reservePSRAM();
   if (myBuffer == NULL)
   {
@@ -94,7 +97,7 @@ void setup()
   displaySelectedFile();
 }
 
-// Display the selected gif file
+// UI Gif file selection
 void displaySelectedFile()
 {
   // Clear the screen
@@ -247,9 +250,8 @@ void waitForTouchRelease()
   delay(300);
 }
 
-void playSelectedFile(int fileindex) {
-  // Use the current file and then advance the index.
-  
+// Play the selected gif file
+void playSelectedFile(int fileindex) {  
   // Build the full path for the selected GIF.
   String fullPath = String(GIF_FOLDER) + "/" + gifFileList[fileindex];
   char gifFilename[128];
@@ -257,7 +259,7 @@ void playSelectedFile(int fileindex) {
   
   Serial.printf("Playing %s\n", gifFilename);
   
-  // Check if the file can fit in the reserved PSRAM.
+  // Check if the file can fit in the reserved PSRAM, playing from PSRAM instead of the SD card is faster
   if (gifFileSizes[fileindex] <= reservedPSRAMSize)
   {
     gfx->fillScreen(RGB565_BLACK);
@@ -285,23 +287,24 @@ void playSelectedFile(int fileindex) {
       else
       {
         Serial.printf("Failed to open GIF from PSRAM, falling back to SD.\n");
-        gifPlay(gifFilename);
+        gifPlayFromSDCard(gifFilename);
       }
     }
     else
     {
       Serial.printf("Failed to open %s for reading into PSRAM.\n", gifFilename);
-      gifPlay(gifFilename);
+      gifPlayFromSDCard(gifFilename);
     }
   }
   else
   {
     // File too big to fit in reserved PSRAM; open it directly from SD.
     Serial.printf("File too big to fit in reserved PSRAM; open it directly from SD.\n");
-    gifPlay(gifFilename);
+    gifPlayFromSDCard(gifFilename);
   }
 }
 
+// Reserve a block of PSRAM to play gif since it is faster than the SD card
 uint8_t *reservePSRAM()
 {
   if (!psramFound())
@@ -339,23 +342,8 @@ uint8_t *reservePSRAM()
   return psramBuffer;
 }
 
-// Open Gif and allocate memory
-bool openGif(uint8_t *gifdata, size_t gifsize)
-{
-  if (gif.open(gifdata, gifsize, GIFDraw))
-  {
-    Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
-    Serial.printf("GIF memory size is %ld (%2.2f MB)\n", gifsize, (float)gifsize / (1024 * 1024));
-    return true;
-  }
-  else
-  {
-    printGifErrorMessage(gif.getLastError());
-    return false;
-  }
-}
-
-void gifPlay(char *gifPath)
+// Play a gif directly from the SD card
+void gifPlayFromSDCard(char *gifPath)
 {
 
   if (!gif.open(gifPath, GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw))
@@ -378,6 +366,7 @@ void gifPlay(char *gifPath)
   }
 }
 
+// Callback function to open a gif file from the SD card
 static void *GIFOpenFile(const char *fname, int32_t *pSize)
 {
   Serial.printf("Opening %s from SD\n", fname);
@@ -390,6 +379,7 @@ static void *GIFOpenFile(const char *fname, int32_t *pSize)
   return NULL;
 }
 
+// Callback function to close a gif file from the SD card
 static void GIFCloseFile(void *pHandle)
 {
   File *f = static_cast<File *>(pHandle);
@@ -397,6 +387,7 @@ static void GIFCloseFile(void *pHandle)
     f->close();
 }
 
+// Callback function to read a gif file from the SD card
 static int32_t GIFReadFile(GIFFILE *pFile, uint8_t *pBuf, int32_t iLen)
 {
   int32_t iBytesRead;
@@ -412,6 +403,7 @@ static int32_t GIFReadFile(GIFFILE *pFile, uint8_t *pBuf, int32_t iLen)
   return iBytesRead;
 }
 
+// Callback function to seek a gif file from the SD card
 static int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition)
 {
   int i = micros();
@@ -423,7 +415,7 @@ static int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition)
   return pFile->iPos;
 }
 
-// Read the avi file list in the avi folder
+// Read the gif file list in the gif folder
 void loadGifFilesList()
 {
   File gifDir = SD_MMC.open(GIF_FOLDER);
@@ -461,7 +453,7 @@ void loadGifFilesList()
   }
 }
 
-// Draw a line of image directly on the screen
+// Callback function to Draw a line of image directly on the screen
 void GIFDraw(GIFDRAW *pDraw)
 {
   uint8_t *s;
@@ -554,7 +546,7 @@ void GIFDraw(GIFDRAW *pDraw)
     }
     gfx->draw16bitBeRGBBitmap(pDraw->iX, y, usTemp, iWidth, 1);
   }
-} /* GIFDraw() */
+} 
 
 // Get human-readable error related to GIF
 void printGifErrorMessage(int errorCode)
