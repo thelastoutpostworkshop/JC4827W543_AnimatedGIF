@@ -1,6 +1,4 @@
-
-// Use board "ESP32S3 Dev Module" (last tested on v3.1.3)
-// Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
+// Use board "ESP32S3 Dev Module" (last tested on v3.2.0)
 #include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.5)
                              // Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
 #include <AnimatedGIF.h>     // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
@@ -21,7 +19,7 @@ static File FSGifFile; // temp gif file holder
 void setup()
 {
   Serial.begin(115200);
-  
+  delay(2000);
   // SD Card initialization
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
