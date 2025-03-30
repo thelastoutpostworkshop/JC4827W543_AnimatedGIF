@@ -6,12 +6,27 @@
 #include "Audio.h"           // install as zip in the Arduino IDE : https://github.com/pschatzmann/arduino-audio-tools.git
 #include <SD_MMC.h>          // Included with the Espressif Arduino Core (last tested on v3.2.0)
 
+const char *root = "/root"; // Do not change this, it is needed to access files properly on the SD card
+const char *GIF_FOLDER = "/gif";
 AnimatedGIF gif;
 int16_t display_width, display_height;
 
 void setup()
 {
   Serial.begin(115200);
+
+  // SD Card initialization
+  pinMode(SD_CS, OUTPUT);
+  digitalWrite(SD_CS, HIGH);
+  SD_MMC.setPins(SD_SCK, SD_MOSI /* CMD */, SD_MISO /* D0 */);
+  if (!SD_MMC.begin(root, true /* mode1bit */, false /* format_if_mount_failed */, SDMMC_FREQ_DEFAULT))
+  {
+    Serial.println("ERROR: SD Card mount failed!");
+    while (true)
+    {
+      /* no need to continue */
+    }
+  }
 
   // Init Display
   if (!gfx->begin())
