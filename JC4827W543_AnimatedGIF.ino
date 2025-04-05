@@ -3,9 +3,8 @@
 #include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.5)
                              // Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
 #include <AnimatedGIF.h>     // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
-#include "Audio.h"           // install as zip in the Arduino IDE : https://github.com/pschatzmann/arduino-audio-tools.git
-#include <SD_MMC.h>          // Included with the Espressif Arduino Core (last tested on v3.2.0)
 #include "TAMC_GT911.h"         // Install "TAMC_GT911" with the Library Manager (last tested on v1.0.2)
+#include <SD_MMC.h>          // Included with the Espressif Arduino Core (last tested on v3.2.0)
 #include "FreeSansBold12pt7b.h" // Included in this project
 
 const char *root = "/root"; // Do not change this, it is needed to access files properly on the SD card
