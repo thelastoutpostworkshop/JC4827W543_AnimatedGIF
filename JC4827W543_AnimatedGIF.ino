@@ -1,3 +1,4 @@
+// Tutorial : https://youtu.be/mnOzfRFQJIM
 // Use board "ESP32S3 Dev Module" (last tested on v3.2.0)
 //
 #include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.5)
