@@ -1,11 +1,11 @@
 // Tutorial : https://youtu.be/mnOzfRFQJIM
 // Use board "ESP32S3 Dev Module" (last tested on v3.2.0)
 //
-#include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.5)
+#include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.6)
                              // Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
 #include <AnimatedGIF.h>     // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
-#include "TAMC_GT911.h"         // Install "TAMC_GT911" with the Library Manager (last tested on v1.0.2)
-#include <SD_MMC.h>          // Included with the Espressif Arduino Core (last tested on v3.2.0)
+#include "TAMC_GT911.h"      // Install "TAMC_GT911" with the Library Manager (last tested on v1.0.2)
+#include <SD.h>              // Included with the Espressif Arduino Core (last tested on v3.2.0)
 #include "FreeSansBold12pt7b.h" // Included in this project
 
 const char *GIF_FOLDER = "/gif";
@@ -19,6 +19,8 @@ uint32_t gifFileSizes[MAX_FILES] = {0}; // Store each GIF file's size in bytes
 int fileCount = 0;
 static int currentFile = 0;
 static File FSGifFile; // temp gif file holder
+
+SPIClass SD_SPI;
 
 // PSRAM for GIF playing optimization
 #define PSRAM_RESERVE_SIZE (100 * 1024) // Reserve 100KB
@@ -43,10 +45,10 @@ void setup()
   delay(2000); // Give time to the serial port to show initial messages printed on the serial port upon reset
 
   // SD Card initialization
-  pinMode(SD_CS, OUTPUT);
-  digitalWrite(SD_CS, HIGH);
-  SD_MMC.setPins(SD_SCK, SD_MOSI, SD_MISO);
-  if (!SD_MMC.begin("/sdcard", true))
+  SD_SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+
+  // SD_MMC.setPins(SD_SCK, SD_MOSI, SD_MISO);
+  if (!SD.begin(SD_CS, SD_SPI, 10000000))
   {
     Serial.println("ERROR: SD Card mount failed!");
     while (true)
@@ -265,7 +267,7 @@ void playSelectedFile(int fileindex) {
     gfx->setCursor(20, 100);
     gfx->print("Loading GIF in PSRAM...");
 
-    File gifFile = SD_MMC.open(gifFilename);
+    File gifFile = SD.open(gifFilename);
     if (gifFile)
     {
       size_t fileSize = gifFile.size();
@@ -369,7 +371,7 @@ void gifPlayFromSDCard(char *gifPath)
 static void *GIFOpenFile(const char *fname, int32_t *pSize)
 {
   Serial.printf("Opening %s from SD\n", fname);
-  FSGifFile = SD_MMC.open(fname);
+  FSGifFile = SD.open(fname);
   if (FSGifFile)
   {
     *pSize = FSGifFile.size();
@@ -417,7 +419,7 @@ static int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition)
 // Read the gif file list in the gif folder
 void loadGifFilesList()
 {
-  File gifDir = SD_MMC.open(GIF_FOLDER);
+  File gifDir = SD.open(GIF_FOLDER);
   if (!gifDir)
   {
     Serial.println("Failed to open GIF folder");
