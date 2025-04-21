@@ -8,7 +8,6 @@
 #include <SD_MMC.h>          // Included with the Espressif Arduino Core (last tested on v3.2.0)
 #include "FreeSansBold12pt7b.h" // Included in this project
 
-const char *root = "/root"; // Do not change this, it is needed to access files properly on the SD card
 const char *GIF_FOLDER = "/gif";
 AnimatedGIF gif;
 int16_t display_width, display_height;
@@ -47,7 +46,7 @@ void setup()
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
   SD_MMC.setPins(SD_SCK, SD_MOSI, SD_MISO);
-  if (!SD_MMC.begin(root, true, false /* format_if_mount_failed */, SDMMC_FREQ_DEFAULT))
+  if (!SD_MMC.begin("/sdcard", true))
   {
     Serial.println("ERROR: SD Card mount failed!");
     while (true)
