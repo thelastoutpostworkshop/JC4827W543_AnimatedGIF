@@ -20,7 +20,7 @@ int fileCount = 0;
 static int currentFile = 0;
 static File FSGifFile; // temp gif file holder
 
-SPIClass SD_SPI;
+static SPIClass spiSD{ HSPI };
 
 // PSRAM for GIF playing optimization
 #define PSRAM_RESERVE_SIZE (100 * 1024) // Reserve 100KB
@@ -45,10 +45,10 @@ void setup()
   delay(2000); // Give time to the serial port to show initial messages printed on the serial port upon reset
 
   // SD Card initialization
-  SD_SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+  spiSD.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS); 
 
   // SD_MMC.setPins(SD_SCK, SD_MOSI, SD_MISO);
-  if (!SD.begin(SD_CS, SD_SPI, 10000000))
+  if (!SD.begin(SD_CS, spiSD, 10000000))
   {
     Serial.println("ERROR: SD Card mount failed!");
     while (true)
