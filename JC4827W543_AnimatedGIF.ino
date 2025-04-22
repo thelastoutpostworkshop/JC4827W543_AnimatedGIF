@@ -46,8 +46,6 @@ void setup()
 
   // SD Card initialization
   spiSD.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS); 
-
-  // SD_MMC.setPins(SD_SCK, SD_MOSI, SD_MISO);
   if (!SD.begin(SD_CS, spiSD, 10000000))
   {
     Serial.println("ERROR: SD Card mount failed!");
