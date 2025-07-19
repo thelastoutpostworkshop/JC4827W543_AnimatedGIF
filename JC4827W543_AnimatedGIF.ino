@@ -1,11 +1,11 @@
 // Tutorial : https://youtu.be/mnOzfRFQJIM
 // Use board "ESP32S3 Dev Module" (last tested on v3.2.0)
 //
-#include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.6)
-                             // Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
-#include <AnimatedGIF.h>     // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
-#include "TAMC_GT911.h"      // Install "TAMC_GT911" with the Library Manager (last tested on v1.0.2)
-#include <SD.h>              // Included with the Espressif Arduino Core (last tested on v3.2.0)
+#include <PINS_JC4827W543.h>    // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.6)
+                                // Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
+#include <AnimatedGIF.h>        // Install "AnimatedGIF" with the Library Manager (last tested on v2.2.0)
+#include "TAMC_GT911.h"         // Install "TAMC_GT911" with the Library Manager (last tested on v1.0.2)
+#include <SD.h>                 // Included with the Espressif Arduino Core (last tested on v3.2.0)
 #include "FreeSansBold12pt7b.h" // Included in this project
 
 const char *GIF_FOLDER = "/gif";
@@ -20,7 +20,7 @@ int fileCount = 0;
 static int currentFile = 0;
 static File FSGifFile; // temp gif file holder
 
-static SPIClass spiSD{ HSPI };
+static SPIClass spiSD{HSPI};
 
 // PSRAM for GIF playing optimization
 #define PSRAM_RESERVE_SIZE (100 * 1024) // Reserve 100KB
@@ -34,7 +34,7 @@ size_t reservedPSRAMSize = 0;
 #define TOUCH_RST 38
 #define TOUCH_WIDTH 480
 #define TOUCH_HEIGHT 272
-#define TITLE_REGION_Y (gfx->height()/3 - 30)
+#define TITLE_REGION_Y (gfx->height() / 3 - 30)
 #define TITLE_REGION_H 35
 #define TITLE_REGION_W (gfx->width())
 TAMC_GT911 touchController = TAMC_GT911(TOUCH_SDA, TOUCH_SCL, TOUCH_INT, TOUCH_RST, TOUCH_WIDTH, TOUCH_HEIGHT);
@@ -45,7 +45,7 @@ void setup()
   delay(2000); // Give time to the serial port to show initial messages printed on the serial port upon reset
 
   // SD Card initialization
-  spiSD.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS); 
+  spiSD.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
   if (!SD.begin(SD_CS, spiSD, 10000000))
   {
     Serial.println("ERROR: SD Card mount failed!");
@@ -158,6 +158,7 @@ void loop()
   {
     int tx = touchController.points[0].x;
     int ty = touchController.points[0].y;
+    Serial.printf("x=%d, y=%d\n", tx, ty);
     int screenW = gfx->width();
     int screenH = gfx->height();
     int arrowSize = 40;
@@ -172,7 +173,7 @@ void loop()
       // Left arrow touched: cycle to previous file.
       currentFile--;
       if (currentFile < 0)
-      currentFile = fileCount - 1;
+        currentFile = fileCount - 1;
       updateTitle();
       while (touchController.touches > 0)
       {
@@ -186,7 +187,7 @@ void loop()
       // Right arrow touched: cycle to next file.
       currentFile++;
       if (currentFile >= fileCount)
-      currentFile = 0;
+        currentFile = 0;
       updateTitle();
       while (touchController.touches > 0)
       {
@@ -217,22 +218,23 @@ void loop()
 }
 
 // Update the gif title on the screen
-void updateTitle() {
+void updateTitle()
+{
   // Clear the entire title area
   gfx->fillRect(0, TITLE_REGION_Y, TITLE_REGION_W, TITLE_REGION_H, RGB565_BLACK);
-  
+
   // Retrieve the new title
   String title = gifFileList[currentFile];
-  
+
   // Get text dimensions for the new title
   int16_t x1, y1;
   uint16_t textW, textH;
   gfx->getTextBounds(title.c_str(), 0, 0, &x1, &y1, &textW, &textH);
-  
+
   // Center the text in the fixed title region:
   int titleX = (TITLE_REGION_W - textW) / 2 - x1;
   int titleY = TITLE_REGION_Y + (TITLE_REGION_H + textH) / 2;
-  
+
   gfx->setCursor(titleX, titleY);
   gfx->print(title);
 }
@@ -250,14 +252,15 @@ void waitForTouchRelease()
 }
 
 // Play the selected gif file
-void playSelectedFile(int fileindex) {  
+void playSelectedFile(int fileindex)
+{
   // Build the full path for the selected GIF.
   String fullPath = String(GIF_FOLDER) + "/" + gifFileList[fileindex];
   char gifFilename[128];
   fullPath.toCharArray(gifFilename, sizeof(gifFilename));
-  
+
   Serial.printf("Playing %s\n", gifFilename);
-  
+
   // Check if the file can fit in the reserved PSRAM, playing from PSRAM instead of the SD card is faster
   if (gifFileSizes[fileindex] <= reservedPSRAMSize)
   {
@@ -272,7 +275,7 @@ void playSelectedFile(int fileindex) {
       size_t bytesRead = gifFile.read(psramBuffer, fileSize);
       gifFile.close();
       Serial.printf("Read %u bytes into PSRAM\n", bytesRead);
-      
+
       // Try opening the GIF from the PSRAM buffer.
       if (gif.open(psramBuffer, fileSize, GIFDraw))
       {
@@ -545,7 +548,7 @@ void GIFDraw(GIFDRAW *pDraw)
     }
     gfx->draw16bitBeRGBBitmap(pDraw->iX, y, usTemp, iWidth, 1);
   }
-} 
+}
 
 // Get human-readable error related to GIF
 void printGifErrorMessage(int errorCode)
