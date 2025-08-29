@@ -23,7 +23,7 @@ static File FSGifFile; // temp gif file holder
 static SPIClass spiSD{HSPI};
 
 // PSRAM for GIF playing optimization
-#define PSRAM_RESERVE_SIZE (100 * 1024) // Reserve 100KB
+#define PSRAM_RESERVE_SIZE (100 * 1024) // Leave 100KB of PSRAM free
 uint8_t *psramBuffer = NULL;
 size_t reservedPSRAMSize = 0;
 
