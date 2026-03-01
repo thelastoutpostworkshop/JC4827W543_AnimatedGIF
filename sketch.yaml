@@ -12,9 +12,11 @@ profiles:
     programmer: ""
     port_config:
       baudrate: "115200"
+      lineEnding: "\r\n"
       bits: "8"
       parity: none
       stop_bits: "1"
+    port: COM8
   esp32-s3-debug:
     fqbn: esp32:esp32:esp32s3:UploadSpeed=921600,USBMode=hwcdc,CDCOnBoot=cdc,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,CPUFreq=240,FlashMode=dio,FlashSize=4M,PartitionScheme=huge_app,DebugLevel=verbose,PSRAM=opi,LoopCore=1,EventsCore=1,EraseFlash=none,JTAGAdapter=default,ZigbeeMode=default
     platforms:
